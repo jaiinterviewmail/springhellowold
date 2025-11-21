@@ -9,15 +9,20 @@ phases:
       - mvn --version
   pre_build:
     commands:
-      - echo "Starting pre-build phase"
-      - mvn clean
+      - echo "Logging in to Amazon ECR"
+      - aws --version
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - REPOSITORY_URI=460299232182.dkr.ecr.ap-south-1.amazonaws.com/springhellowold-repo
+      - IMAGE_TAG=$(date +%Y%m%d%H%M%S)
+      - mvn clean package -DskipTests
   build:
     commands:
-      - echo "Building Spring Boot application"
-      - mvn package -DskipTests
+      - echo "Building Docker image"
+      - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
-      - echo "Build completed successfully"
+      - echo "Writing image definitions"
+      - printf '[{"name":"springhellowold","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
-  files:
-    - target/*.jar
+  files: imagedefinitions.json

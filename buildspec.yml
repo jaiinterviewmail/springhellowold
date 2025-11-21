@@ -1,5 +1,10 @@
 version: 0.2
 
+env:
+  variables:
+    AWS_DEFAULT_REGION: "ap-south-1"
+    REPOSITORY_URI: "460299232182.dkr.ecr.ap-south-1.amazonaws.com/springhellowold-repo"
+
 phases:
   install:
     runtime-versions:
@@ -11,8 +16,7 @@ phases:
     commands:
       - echo "Logging in to Amazon ECR"
       - aws --version
-      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
-      - REPOSITORY_URI=<your-ecr-repo-uri>
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
       - IMAGE_TAG=$(date +%Y%m%d%H%M%S)
       - mvn clean package -DskipTests
   build:
@@ -25,4 +29,5 @@ phases:
       - echo "Writing image definitions"
       - printf '[{"name":"springhellowold","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
-  files: imagedefinitions.json
+  files:
+    - imagedefinitions.json

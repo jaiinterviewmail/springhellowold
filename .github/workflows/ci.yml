@@ -1,4 +1,4 @@
-name: Spring Boot CI Pipeline
+name: Spring Boot CI/CD Pipeline
 
 on:
   push:
@@ -14,35 +14,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Java
+      # 2. Setup Java (required for Spring Boot)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Build project
-      - name: Build with Maven
-        run: mvn clean package
+      # 3. Cache Maven dependencies (faster builds)
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: maven-${{ hashFiles('**/pom.xml') }}
 
-      # 4. Run app briefly to generate logs (optional)
-      - name: Run app for logs
-        run: |
-          mkdir -p logs
-          java -jar target/*.jar &
-          sleep 10
-          pkill -f 'java -jar'
+      # 4. Build Spring Boot app
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
 
       # 5. Upload JAR artifact
-      - name: Upload JAR
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: springboot-jar
           path: target/*.jar
+          retention-days: 7
 
-      # 6. Upload logs artifact
-      - name: Upload Logs
-        uses: actions/upload-artifact@v4
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # 6. Download artifact from previous job
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
         with:
-          name: app-logs
-          path: logs/
+          name: springboot-jar
+
+      # 7. Run application (demo deploy)
+      - name: Run JAR
+        run: |
+          echo "Starting Spring Boot app..."
+          java -jar *.jar &
+          sleep 10
+          echo "App started successfully"

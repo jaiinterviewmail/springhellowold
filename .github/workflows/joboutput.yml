@@ -1,0 +1,26 @@
+name: Job Output Demo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      app_version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Generate version
+        id: version
+        run: echo "version=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Use version
+        run: echo "Deploying version ${{ needs.build.outputs.app_version }}"
